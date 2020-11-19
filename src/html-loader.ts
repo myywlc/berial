@@ -1,6 +1,5 @@
-import type { App, PromiseFn, Lifecycles } from './types'
-
-import { run } from './sandbox'
+import type { Lifecycles } from './types'
+import { run, observeDoucument, getcurrentQueue } from './sandbox'
 import { request } from './util'
 
 const MATCH_ANY_OR_NO_PROPERTY = /["'=\w\s\/]*/
@@ -46,52 +45,34 @@ const TEST_URL = /^(?:https?):\/\/[-a-zA-Z0-9.]+/
 const REPLACED_BY_BERIAL = 'Script replaced by Berial.'
 
 export async function importHtml(
-  app: App
+  host: any
 ): Promise<{
   lifecycle: Lifecycles
   styleNodes: HTMLStyleElement[]
   bodyNode: HTMLTemplateElement
 }> {
-  const template = await request(app.url as string)
+  const template = await request(host.path as string)
   const styleNodes = await loadCSS(template)
   const bodyNode = loadBody(template)
-  const lifecycle = await loadScript(template, app.name)
+  const lifecycle = await loadScript(template, host)
   return { lifecycle, styleNodes, bodyNode }
 }
 
-export async function loadScript(
-  template: string,
-  name: string
-): Promise<Lifecycles> {
-  const scriptsToLoad = await Promise.all(
-    parseScript(template).map((v: string) => {
-      if (TEST_URL.test(v)) return request(v)
-      return v
+export async function loadScript(template: string, host: any): Promise<any> {
+  function process(queue: any): void {
+    Promise.all(
+      queue.map((v: string) => (TEST_URL.test(v) ? request(v) : v))
+    ).then((q1: any) => {
+      q1.forEach(getLyfecycles)
+      const q2 = getcurrentQueue(host)
+      if (q2.length > 0) process(q2)
     })
-  )
+  }
+  process(parseScript(template))
 
-  let bootstrap: PromiseFn[] = []
-  let unmount: PromiseFn[] = []
-  let mount: PromiseFn[] = []
-  scriptsToLoad.forEach((script) => {
-    const lifecycles = run(script, {})[name]
-    if (lifecycles) {
-      bootstrap =
-        typeof lifecycles.bootstrap === 'function'
-          ? [...bootstrap, lifecycles.bootstrap]
-          : bootstrap
-      mount =
-        typeof lifecycles.mount === 'function'
-          ? [...mount, lifecycles.mount]
-          : mount
-      unmount =
-        typeof lifecycles.unmount === 'function'
-          ? [...unmount, lifecycles.unmount]
-          : unmount
-    }
-  })
-
-  return { bootstrap, unmount, mount }
+  function getLyfecycles(script: string): void {
+    return run(script, {})[host.slot]
+  }
 }
 
 function parseScript(template: string): string[] {
