@@ -11,24 +11,26 @@
 
 Berial is a new approach to a popular idea: build a javascript framework for front-end microservices.
 
-There are any wonderful features of it, such as Asynchronous rendering pipeline (like React Fiber), Web components (shadow DOM + scoped css), JavaScript sandbox (Proxy + MutationObserver).
+There are any wonderful features of it, such as Asynchronous rendering pipeline, Web components (shadow DOM + scoped css), JavaScript sandbox (Proxy).
 
 Note: diffence form fre, Berial will pay attention to business value.
 
 ### Use
 
 ```html
-<router-view slot="a" path="a.html">
-  <router-view slot="b" path="b.html"></router-view>
-  <router-view slot="c" path="c.html"></router-view>
-</router-view>
+<one-app></one-app>
+<two-app></two-app>
 
 <script type="module">
-  import { Entity } from 'berial'
-  // 注册所有实例
-  window.customElements.define('reuter-view', Entity)
-  // 切换路由，自动匹配实例到 slot 中
-  window.history.push('/a/b')
+  import { register } from 'berial'
+  register([{
+    name: 'one-app'
+    url: '1.html'
+    allowList: {} // 沙箱白名单
+  },{
+    name: 'two-app'
+    scripts: ['2.js'] // 可选
+  }])
 </script>
 ```
 
